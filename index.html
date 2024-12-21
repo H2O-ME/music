@@ -67,6 +67,10 @@
             margin-left: 300px;
             min-height: 100vh;
             padding-bottom: 120px;
+            padding-top: 20px;
+            background: linear-gradient(180deg, 
+                var(--background-color) 0%,
+                rgba(15, 23, 42, 0.95) 100%);
         }
 
         .search-container {
@@ -82,6 +86,7 @@
             flex-wrap: wrap;
             gap: 16px;
             align-items: center;
+            margin-top: 20px;
         }
 
         .quality-selector {
@@ -817,6 +822,121 @@
                 opacity: 0.7;
             }
         }
+
+        /* 修复添加歌单按钮样式 */
+        .add-to-playlist-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+        }
+
+        .add-to-playlist-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .add-to-playlist-btn span:last-child {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* 修复主容器顶部间距 */
+        .main-container {
+            padding-top: 20px;
+            background: linear-gradient(180deg, 
+                var(--background-color) 0%,
+                rgba(15, 23, 42, 0.95) 100%);
+        }
+
+        /* 修复搜索容器样式 */
+        .search-container {
+            margin-top: 20px;
+            background: linear-gradient(180deg, 
+                rgba(30, 41, 59, 0.98) 0%,
+                rgba(30, 41, 59, 0.95) 100%);
+        }
+
+        /* 修复播放器右侧控样式 */
+        .player-right-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* 修复移动端样式 */
+        @media screen and (max-width: 768px) {
+            .main-container {
+                padding-top: 60px;
+            }
+            
+            .player-right-controls {
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .add-to-playlist-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* 默认隐藏侧边栏切换按钮 */
+        .sidebar-toggle {
+            display: none;  /* 默认隐藏 */
+            position: fixed;
+            left: 16px;
+            top: 16px;
+            z-index: 1001;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface-color);
+            border: none;
+            color: var(--text-primary);
+            font-size: 20px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 在移动端才显示侧边栏切换按钮 */
+        @media screen and (max-width: 768px) {
+            .sidebar-toggle {
+                display: flex;  /* 移动端显示 */
+            }
+        }
+
+        /* 侧边栏遮罩层样式 */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 移动端侧边栏遮罩层激活状态 */
+        @media screen and (max-width: 768px) {
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1058,17 +1178,29 @@
                 );
 
                 if (playUrl) {
-                    const url = playUrl.split('：')[1].trim();
-                    song.url = url;
-                    const playlistIndex = savedPlaylist.findIndex(s => s.n === song.n);
-                    if (playlistIndex !== -1) {
-                        savedPlaylist[playlistIndex].url = url;
-                        savePlaylist();
+                    let url;
+                    if (playUrl.includes('播放链接：')) {
+                        url = playUrl.split('播放链接：')[1].trim();
+                    } else if (playUrl.includes('url:')) {
+                        url = playUrl.split('url:')[1].trim();
                     }
                     
-                    const audio = new Audio(url);
-                    setupAudioPlayer(audio, song);
-                    audio.play();
+                    if (url && url.startsWith('http')) {
+                        song.url = url;
+                        const playlistIndex = savedPlaylist.findIndex(s => s.n === song.n);
+                        if (playlistIndex !== -1) {
+                            savedPlaylist[playlistIndex].url = url;
+                            savePlaylist();
+                        }
+                        
+                        const audio = new Audio(url);
+                        setupAudioPlayer(audio, song);
+                        audio.play();
+                    } else {
+                        throw new Error('Invalid URL');
+                    }
+                } else {
+                    throw new Error('No play URL found');
                 }
             } catch (error) {
                 console.error('播放失败:', error);
@@ -1143,18 +1275,31 @@
                                 );
 
                                 if (playUrl) {
-                                    const url = playUrl.split('：')[1].trim();
-                                    const audio = new Audio(url);
-                                    setupAudioPlayer(audio, song);
-                                    currentSongIndex = playlist.findIndex(s => s.n === song.n);
-                                    if (currentSongIndex === -1) {
-                                        playlist.push(song);
-                                        currentSongIndex = playlist.length - 1;
+                                    let url;
+                                    if (playUrl.includes('播放链接：')) {
+                                        url = playUrl.split('播放链接：')[1].trim();
+                                    } else if (playUrl.includes('url:')) {
+                                        url = playUrl.split('url:')[1].trim();
                                     }
-                                    audio.play();
+                                    
+                                    if (url && url.startsWith('http')) {
+                                        const audio = new Audio(url);
+                                        setupAudioPlayer(audio, song);
+                                        currentSongIndex = playlist.findIndex(s => s.n === song.n);
+                                        if (currentSongIndex === -1) {
+                                            playlist.push(song);
+                                            currentSongIndex = playlist.length - 1;
+                                        }
+                                        audio.play();
+                                    } else {
+                                        errorDiv.style.display = 'block';
+                                        errorDiv.textContent = '无效的播放链接';
+                                        console.error('Invalid URL:', url);
+                                    }
                                 } else {
                                     errorDiv.style.display = 'block';
                                     errorDiv.textContent = '无法获取播放链接';
+                                    console.error('Response text:', playText);
                                 }
                             } catch (error) {
                                 loadingDiv.style.display = 'none';
@@ -1229,7 +1374,7 @@
             savedPlaylist.splice(index, 1);
             savePlaylist();
             renderPlaylist();
-            showToast('已从���单中移除');
+            showToast('已从歌单中移除');
         }
 
         // 清空歌单
@@ -1351,7 +1496,7 @@
             });
         }
 
-        // 页面加���时初始化
+        // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', initializeApp);
 
         // 添加 Toast 样式
