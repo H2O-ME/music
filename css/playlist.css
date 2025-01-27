@@ -1,0 +1,123 @@
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 300px;
+    background: var(--surface-color-90);
+    border-right: 1px solid rgba(96, 165, 250, 0.2);
+    padding: 20px;
+    overflow-y: auto;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+}
+
+.playlist-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.playlist-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.playlist-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.playlist-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.playlist-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.playlist-items {
+    display: grid;
+    gap: 8px;
+}
+
+.playlist-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: var(--glass-effect-light);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid transparent;
+}
+
+.playlist-item:hover {
+    background: var(--glass-effect-medium);
+    border-color: rgba(96, 165, 250, 0.3);
+    transform: translateX(8px);
+}
+
+.playlist-item.active {
+    background: var(--glass-effect-strong);
+    border-color: rgba(96, 165, 250, 0.4);
+}
+
+.playlist-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.playlist-item-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.playlist-item-artist {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.playlist-item-controls {
+    display: flex;
+    gap: 8px;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+    position: absolute;
+    right: 12px;
+}
+
+.playlist-item:hover .playlist-item-controls {
+    opacity: 1;
+}
+
+.playlist-item-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.playlist-item-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+} 

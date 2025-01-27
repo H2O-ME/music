@@ -1,0 +1,110 @@
+@media screen and (max-width: 768px) {
+    .main-container {
+        margin-left: 0;
+        padding: 20px;
+        padding-bottom: 200px;
+    }
+
+    .search-container {
+        flex-direction: column;
+        padding: 16px;
+    }
+
+    .quality-selector {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .search-box {
+        width: 100%;
+    }
+
+    .results {
+        grid-template-columns: 1fr;
+    }
+
+    .player-main {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .player-info {
+        order: -1;
+        align-items: center;
+    }
+
+    .lyrics-container {
+        bottom: 180px;
+        height: 80px;
+    }
+
+    .lyrics-line {
+        font-size: 13px;
+    }
+
+    .lyrics-line.active {
+        font-size: 15px;
+    }
+
+    .sidebar-toggle {
+        display: flex;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .player-right-controls {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .volume-control {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* 桌面端隐藏移动端元素 */
+@media screen and (min-width: 769px) {
+    .sidebar-toggle {
+        display: none;
+    }
+
+    .sidebar-overlay {
+        display: none;
+    }
+}
+
+/* 安全区域适配 */
+@supports (padding: env(safe-area-inset-bottom)) {
+    @media screen and (max-width: 768px) {
+        .player-container {
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        }
+
+        .main-container {
+            padding-top: calc(60px + env(safe-area-inset-top));
+            padding-bottom: calc(250px + env(safe-area-inset-bottom));
+        }
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) {
+    .song-card:hover {
+        transform: none;
+    }
+
+    .playlist-item:hover {
+        transform: none;
+    }
+
+    .quality-btn:active,
+    .search-btn:active,
+    .playlist-item:active {
+        opacity: 0.7;
+    }
+} 
