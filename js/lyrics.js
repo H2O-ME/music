@@ -4,6 +4,32 @@ class LyricsManager {
         this.lyrics = [];
         this.container = document.querySelector('.lyrics-scroll');
         this.currentIndex = -1;
+        this.timeOffset = 0; // 初始化为0，后面会设置
+    }
+    
+    // 设置歌词时间偏移量
+    setTimeOffset(seconds) {
+        this.timeOffset = seconds;
+        console.log(`设置歌词时间偏移量为 ${seconds} 秒`);
+        
+        // 如果歌词已经加载，直接应用偏移量
+        if (this.lyrics.length > 0) {
+            this.applyTimeOffset();
+        }
+    }
+    
+    // 应用时间偏移量到所有歌词
+    applyTimeOffset() {
+        console.log(`应用时间偏移量 ${this.timeOffset} 秒到 ${this.lyrics.length} 行歌词`);
+        this.lyrics.forEach(lyric => {
+            // 存储原始时间（如果还没有）
+            if (lyric.originalTime === undefined) {
+                lyric.originalTime = lyric.time;
+            }
+            // 应用偏移
+            lyric.time = lyric.originalTime - this.timeOffset;
+            console.log(`歌词: "${lyric.text.substring(0, 20)}...", 原始时间: ${lyric.originalTime}s, 偏移后: ${lyric.time}s`);
+        });
     }
 
     // 解析歌词
@@ -29,13 +55,21 @@ class LyricsManager {
             if (!text || text.includes('混音') || text.includes('制作人') || text.includes('策划')) return;
 
             timeMatch.forEach(timeStr => {
-                const [min, sec, ms] = timeStr.slice(1, -1).split(/[:.]/);
+                const [min, sec, ms] = timeStr.slice(1, -1).split(/[:.]/);                
+                // 计算时间
                 const time = parseInt(min) * 60 + parseInt(sec) + parseInt(ms) / (ms.length === 2 ? 100 : 1000);
-                tempLyrics.push({ time, text });
+                // 存储原始时间和歌词文本
+                tempLyrics.push({ time, originalTime: time, text });
             });
         });
 
         this.lyrics = tempLyrics.sort((a, b) => a.time - b.time);
+        
+        // 应用时间偏移量
+        if (this.timeOffset > 0) {
+            this.applyTimeOffset();
+        }
+        
         this.render();
     }
 
@@ -64,6 +98,7 @@ class LyricsManager {
     update(currentTime) {
         if (this.lyrics.length === 0) return;
 
+        // 不需要在这里应用偏移量，因为已经在解析时应用了
         let index = this.lyrics.findIndex(lyric => lyric.time > currentTime);
         if (index === -1) {
             index = this.lyrics.length;
@@ -136,6 +171,9 @@ class LyricsManager {
 
 // 创建歌词管理器实例
 const lyricsManager = new LyricsManager();
+
+// 设置歌词时间偏移量为10秒
+lyricsManager.setTimeOffset(0.12);
 
 // 解析歌词
 function parseLyrics(lrcText) {

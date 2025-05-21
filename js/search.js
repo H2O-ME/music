@@ -153,12 +153,33 @@ async function downloadSong(event, title, n) {
         
         const url = await fetchSongUrl({ title, n });
         if (url) {
+            showToast('正在准备下载...');
+            
+            // 使用fetch获取音频数据
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('无法获取文件');
+            
+            // 将响应转换为blob
+            const blob = await response.blob();
+            
+            // 创建blob URL
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // 创建下载链接
             const a = document.createElement('a');
-            a.href = url;
+            a.href = blobUrl;
             a.download = `${title}.mp3`;
+            a.style.display = 'none';
             document.body.appendChild(a);
+            
+            // 触发点击
             a.click();
-            document.body.removeChild(a);
+            
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            }, 100);
             
             showToast('开始下载...');
         }

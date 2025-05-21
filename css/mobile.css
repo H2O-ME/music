@@ -65,6 +65,84 @@
         width: 100%;
         justify-content: center;
     }
+
+    /* 搜索结果页面布局 */
+    .results-container {
+        height: calc(100vh - 81px);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* 搜索结果列表 */
+    .results-list {
+        padding: 10px;
+        max-height: 50vh;
+        overflow-y: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    
+    /* 播放器区域 */
+    .player-section {
+        padding: 15px;
+    }
+    
+    /* 控制按钮 */
+    .control-buttons {
+        gap: 16px;
+    }
+    
+    .control-button,
+    #playPauseBtn {
+        width: 48px;
+        height: 48px;
+    }
+    
+    /* 歌词显示区 */
+    .lyrics-display {
+        max-height: 30vh;
+        padding: 20px 10px;
+    }
+    
+    /* 搜索结果卡片 */
+    .song-card {
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+    
+    /* 播放器控制器 */
+    .player-main {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .player-info {
+        padding-right: 0;
+    }
+    
+    .player-right-controls {
+        justify-content: center;
+    }
+    
+    /* 设备方向切换处理 */
+    @media (orientation: landscape) {
+        .results-container {
+            flex-direction: row;
+            height: calc(100vh - 60px);
+        }
+        
+        .results-list {
+            width: 50%;
+            max-height: none;
+            border-right: 1px solid var(--glass-border);
+            border-bottom: none;
+        }
+        
+        .player-section {
+            width: 50%;
+        }
+    }
 }
 
 /* 桌面端隐藏移动端元素 */
@@ -86,25 +164,22 @@
         }
 
         .main-container {
-            padding-top: calc(60px + env(safe-area-inset-top));
-            padding-bottom: calc(250px + env(safe-area-inset-bottom));
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-bottom: calc(200px + env(safe-area-inset-bottom));
         }
     }
 }
 
 /* 触摸设备优化 */
 @media (hover: none) {
-    .song-card:hover {
-        transform: none;
+    .song-card:active {
+        background: var(--bg-card-hover);
+        transform: scale(0.98);
     }
-
-    .playlist-item:hover {
-        transform: none;
-    }
-
-    .quality-btn:active,
-    .search-btn:active,
-    .playlist-item:active {
-        opacity: 0.7;
+    
+    .control-button:active,
+    #playPauseBtn:active {
+        transform: scale(0.9);
+        opacity: 0.8;
     }
 } 

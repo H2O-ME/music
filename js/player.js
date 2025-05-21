@@ -61,7 +61,11 @@ function setupAudioEvents(audio) {
         document.querySelector('.progress').style.width = `${progress}%`;
         document.getElementById('currentTime').textContent = formatTime(audio.currentTime);
         document.getElementById('duration').textContent = formatTime(audio.duration);
-        updateLyrics(audio.currentTime);
+        // 应用10秒的时间偏移，提前显示歌词
+        const timeOffset = 0.1; // 歌词提前显示10秒
+        const adjustedTime = audio.currentTime + timeOffset;
+        console.log(`播放时间: ${audio.currentTime.toFixed(2)}秒, 歌词时间: ${adjustedTime.toFixed(2)}秒 (提前${timeOffset}秒)`);
+        updateLyrics(adjustedTime);
     });
 
     audio.addEventListener('ended', () => {
@@ -116,19 +120,45 @@ function updateVolumeUI(value) {
     setTimeout(() => volumeBtn.classList.remove('active'), 300);
 }
 
-// 播放/暂停切换
+// 播放/暂停切换 - 增加错误检查
 function togglePlay() {
     if (!currentAudio) return;
     
     const playPauseBtn = document.getElementById('playPauseBtn');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    
+    // 添加安全检查，防止null错误
+    if (!playPauseIcon) {
+        console.warn('播放图标元素未找到');
+        // 使用旧方式更新按钮状态
+        if (currentAudio.paused) {
+            currentAudio.play()
+                .then(() => {
+                    if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                })
+                .catch(error => {
+                    console.error('播放失败:', error);
+                    showToast('播放失败，请重试');
+                });
+        } else {
+            currentAudio.pause();
+            if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        }
+        return;
+    }
+    
     if (currentAudio.paused) {
-        currentAudio.play();
-        playPauseBtn.textContent = '⏸';
-        playPauseBtn.setAttribute('data-state', 'playing');
+        currentAudio.play()
+            .then(() => {
+                playPauseIcon.className = 'fas fa-pause';
+            })
+            .catch(error => {
+                console.error('播放失败:', error);
+                showToast('播放失败，请重试');
+            });
     } else {
         currentAudio.pause();
-        playPauseBtn.textContent = '▶';
-        playPauseBtn.setAttribute('data-state', 'paused');
+        playPauseIcon.className = 'fas fa-play';
     }
 }
 
@@ -188,6 +218,20 @@ async function setupAudioPlayer(audio, song) {
     currentAudio = audio;
     
     try {
+        // 更新UI
+        updatePlayerUI(song);
+        
+        // 预先初始化播放按钮
+        const playPauseIcon = document.getElementById('playPauseIcon');
+        if (playPauseIcon) {
+            playPauseIcon.className = 'fas fa-pause';
+        } else {
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            if (playPauseBtn) {
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            }
+        }
+        
         // 设置音频事件监听
         setupAudioEvents(audio);
         
@@ -196,9 +240,6 @@ async function setupAudioPlayer(audio, song) {
         
         // 设置音量控制
         setupVolumeControl(audio);
-        
-        // 更新UI
-        updatePlayerUI(song);
         
         // 加载歌词
         await loadLyrics(song);
@@ -245,6 +286,29 @@ async function loadLyrics(song) {
     } catch (error) {
         console.error('加载歌词失败:', error);
         document.querySelector('.lyrics-scroll').innerHTML = '<p class="lyrics-line">加载歌词失败</p>';
+    }
+}
+
+// 更新播放按钮状态 - 增加安全检查
+function updatePlayButtonState(isPlaying) {
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    
+    // 添加安全检查
+    if (!playPauseIcon) {
+        console.warn('播放图标元素未找到');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        if (playPauseBtn) {
+            playPauseBtn.innerHTML = isPlaying ? 
+                '<i class="fas fa-pause"></i>' : 
+                '<i class="fas fa-play"></i>';
+        }
+        return;
+    }
+    
+    if (isPlaying) {
+        playPauseIcon.className = 'fas fa-pause';
+    } else {
+        playPauseIcon.className = 'fas fa-play';
     }
 }
 

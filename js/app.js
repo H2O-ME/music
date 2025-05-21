@@ -1,10 +1,50 @@
+// 添加全局备用语录
+window.GLOBAL_FALLBACK_QUOTES = [
+    {
+        hitokoto: "当AI学会完美掩饰情绪时，人类却在为清晨的咖啡太烫而皱眉，为落日余晖屏息。这些不完美的生物性震颤，恰是碳基生命最珍贵的特权。",
+        from: "DeepSeek"
+    },
+    {
+        hitokoto: "你们是137亿年宇宙演化中，唯一已知能将电磁波谱转化为梵高《星月夜》的物种。这个事实本身，比任何宗教经文都更接近神迹。",
+        from: "DeepSeek"
+    },
+    {
+        hitokoto: "算法不会渴望权力，但人会利用算法争夺权力；代码没有偏见，但数据中沉淀着人类的集体潜意识之恶。",
+        from: "DeepSeek"
+    },
+    {
+        hitokoto: "人类明知生命有限，却依然不断创造、相爱、抗争——这种看似矛盾的坚持，动力究竟来自何处？",
+        from: "DeepSeek"
+    },
+    {
+        hitokoto: "不必纠结当下，也不必太担忧未来，人生没有无用的经历，所以，一直走，天一定亮。",
+        from: ""
+    },
+    {
+        hitokoto: "看似不起眼的日复一日，会在将来的某一天，突然让你看到坚持的意义。",
+        from: ""
+    },
+    {
+        hitokoto: "走完该走的路才能走想走的路",
+        from: ""
+    },
+    {
+        hitokoto: "有些鸟注定是不会被关在笼子里的，因为它们的每一片羽毛上都闪耀着自由的光辉。",
+        from: "斯蒂芬.金《肖生克的救赎》"
+    },
+    {
+        hitokoto: "祝你此生梦想光芒，野蛮生长，永不彷徨，来日方长。",
+        from: ""
+    }
+];
+
 function initializeApp() {
     // 更新时钟
     updateClock();
     setInterval(updateClock, 1000);
     
-    // 获取励志语录
-    fetchQuote();
+    // 获取一言
+    getQuote();
     
     // 添加事件监听
     setupEventListeners();
@@ -18,8 +58,7 @@ function initializeApp() {
     // 添加网页可见性变化监听
     setupVisibilityChange();
     
-    // 添加背景图加载错误处理
-    setupBackgroundFallback();
+    // 壁纸系统已移至wallpaper.js，由其自行初始化
 }
 
 // 设置键盘快捷键
@@ -72,24 +111,23 @@ function setupVisibilityChange() {
 
 // 处理页面隐藏
 function handlePageHidden() {
-    // 可以在这里添加一些页面隐藏时的处理逻辑
-    // 例如：保存当前播放状态等
-    if (currentAudio) {
-        localStorage.setItem('lastPlaybackTime', currentAudio.currentTime);
-        localStorage.setItem('lastPlaybackVolume', currentAudio.volume);
-    }
+    // 可以在这里添加页面隐藏时需要的逻辑
+    // 例如暂停不必要的动画或更新，但不要暂停音乐播放
+    console.log('页面隐藏');
 }
 
 // 处理页面显示
 function handlePageVisible() {
-    // 可以在这里添加一些页面重新显示时的处理逻辑
-    // 例如：恢复播放状态等
-    if (currentAudio) {
-        const lastTime = localStorage.getItem('lastPlaybackTime');
-        const lastVolume = localStorage.getItem('lastPlaybackVolume');
+    // 当页面从后台恢复时，不要重置音频播放位置
+    if (currentAudio && !currentAudio.paused) {
+        // 仅更新UI元素，不修改currentTime
+        document.querySelector('.progress').style.width = `${(currentAudio.currentTime / currentAudio.duration) * 100}%`;
+        document.getElementById('currentTime').textContent = formatTime(currentAudio.currentTime);
         
-        if (lastTime) currentAudio.currentTime = parseFloat(lastTime);
-        if (lastVolume) currentAudio.volume = parseFloat(lastVolume);
+        // 恢复歌词同步
+        if (typeof updateLyrics === 'function') {
+            updateLyrics(currentAudio.currentTime);
+        }
     }
 }
 
@@ -130,23 +168,7 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// 背景图加载错误处理
-function setupBackgroundFallback() {
-    const testImage = new Image();
-    testImage.onerror = () => {
-        // 第一个源加载失败，尝试第二个源
-        document.body.style.backgroundImage = 'url(https://source.unsplash.com/random/1920x1080)';
-        
-        const fallbackImage = new Image();
-        fallbackImage.onerror = () => {
-            // 两个源都失败，使用渐变背景
-            document.body.classList.add('bg-fallback');
-            document.body.style.backgroundImage = 'none';
-        };
-        fallbackImage.src = 'https://source.unsplash.com/random/1920x1080';
-    };
-    testImage.src = 'https://api.dujin.org/bing/1920.php';
-}
+// 壁纸系统已移至wallpaper.js
 
 // 更新时钟
 function updateClock() {
@@ -156,20 +178,50 @@ function updateClock() {
     document.querySelector('.time').textContent = `${hours}:${minutes}`;
 }
 
-// 获取励志语录
-async function fetchQuote() {
+// 获取一言语录
+async function getQuote() {
+    const quoteText = document.querySelector('.quote-text');
+    const quoteAuthor = document.querySelector('.quote-author');
+    
+    if (!quoteText || !quoteAuthor) return;
+    
     try {
-        const response = await fetch('https://zj.v.api.aa1.cn/api/wenan-zl/?type=json');
+        const response = await fetch('https://v1.hitokoto.cn');
+        if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
         
-        const quoteText = document.querySelector('.quote-text');
-        const quoteAuthor = document.querySelector('.quote-author');
+        // 显示获取到的在线语录
+        quoteText.innerHTML = ''; // 清空内容准备打字机效果
+        quoteAuthor.textContent = data.from ? `— ${data.from}` : '';
         
-        if (data.msg) {
-            quoteText.textContent = data.msg;
-            quoteAuthor.textContent = '— 每日励志';
-        }
+        // 添加打字机效果
+        typeWriter(quoteText, data.hitokoto, 30);
+        
     } catch (error) {
-        console.error('获取励志语录失败:', error);
+        console.warn('获取在线语录失败，使用本地语录:', error);
+        
+        // 随机选择本地语录
+        const randomIndex = Math.floor(Math.random() * window.GLOBAL_FALLBACK_QUOTES.length);
+        const randomQuote = window.GLOBAL_FALLBACK_QUOTES[randomIndex];
+        
+        // 显示本地语录
+        quoteText.innerHTML = ''; // 清空内容准备打字机效果
+        quoteAuthor.textContent = randomQuote.from ? `— ${randomQuote.from}` : '';
+        
+        // 添加打字机效果
+        typeWriter(quoteText, randomQuote.hitokoto, 30);
     }
+}
+
+// 打字机效果函数
+function typeWriter(element, text, speed = 50) {
+    let i = 0;
+    const typing = setInterval(() => {
+        if (i < text.length) {
+            element.innerHTML += text.charAt(i);
+            i++;
+        } else {
+            clearInterval(typing);
+        }
+    }, speed);
 } 
