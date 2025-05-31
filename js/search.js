@@ -17,21 +17,44 @@ async function searchMusic() {
 }
 
 // 获取搜索结果
+/**
+ * 搜索音乐
+ * @param {string} keyword 搜索关键词
+ * @returns {Promise<Array>} 歌曲列表
+ */
 async function fetchSearchResults(keyword) {
+    // 获取当前选择的音质
+    const currentBitrate = window.getCurrentBitrate ? window.getCurrentBitrate() : CONFIG.DEFAULT_BITRATE;
+    
     const searchParams = new URLSearchParams({
+        key: CONFIG.API_KEY,
         gm: keyword,
         type: 'json',
         num: '30',
-        br: currentBr
+        br: currentBitrate
     });
+    
+    console.log('搜索参数:', searchParams.toString());
 
-    const response = await fetch(`${CONFIG.API_BASE_URL}?${searchParams}`);
-    const data = await response.json();
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/?${searchParams}`);
+        const result = await response.json();
 
-    if (data.code === 200 && data.data && data.data.length > 0) {
-        return data.data;
-    } else {
-        throw new Error(data.msg || '未找到相关歌曲');
+        if (result && result.code === 200 && result.data && Array.isArray(result.data) && result.data.length > 0) {
+            return result.data.map(song => ({
+                title: song.title || '未知歌曲',
+                singer: song.singer || '未知歌手',
+                n: song.n || song.songid || '',
+                id: song.songid || song.n || '',
+                songid: song.songid || song.n || '',
+                cover: song.pic || ''
+            }));
+        } else {
+            throw new Error(result?.msg || '未找到相关歌曲');
+        }
+    } catch (error) {
+        console.error('搜索失败:', error);
+        throw new Error('搜索失败，请稍后重试: ' + error.message);
     }
 }
 

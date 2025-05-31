@@ -38,6 +38,9 @@ window.GLOBAL_FALLBACK_QUOTES = [
     }
 ];
 
+// 全局音质设置
+let currentBitrate = localStorage.getItem('bitratePreference') || '1';
+
 function initializeApp() {
     // 更新时钟
     updateClock();
@@ -45,6 +48,9 @@ function initializeApp() {
     
     // 获取一言
     getQuote();
+    
+    // 初始化音质选择
+    initializeQualitySelector();
     
     // 添加事件监听
     setupEventListeners();
@@ -159,6 +165,37 @@ window.onunhandledrejection = function(event) {
 
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', initializeApp);
+
+// 初始化音质选择器
+function initializeQualitySelector() {
+    const qualitySelect = document.getElementById('qualitySelect');
+    
+    // 从本地存储加载用户首选项
+    if (localStorage.getItem('bitratePreference')) {
+        currentBitrate = localStorage.getItem('bitratePreference');
+        qualitySelect.value = currentBitrate;
+    }
+    
+    // 监听音质选择变化
+    qualitySelect.addEventListener('change', (e) => {
+        currentBitrate = e.target.value;
+        localStorage.setItem('bitratePreference', currentBitrate);
+        showToast(`已切换至${qualitySelect.options[qualitySelect.selectedIndex].text}`);
+        
+        // 如果当前正在播放歌曲，使用新音质重新加载
+        if (currentAudio && !currentAudio.paused) {
+            const currentSong = playlist[currentSongIndex];
+            if (currentSong) {
+                playTrack(currentSong);
+            }
+        }
+    });
+}
+
+// 获取当前音质设置
+function getCurrentBitrate() {
+    return currentBitrate;
+}
 
 // 页面卸载前保存状态
 window.addEventListener('beforeunload', () => {

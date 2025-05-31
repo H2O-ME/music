@@ -191,16 +191,49 @@ function nextTrack() {
 
 // 播放指定歌曲
 async function playTrack(song) {
+    if (!song) {
+        console.error('无效的歌曲信息');
+        return;
+    }
+    
     if (currentAudio) {
         currentAudio.pause();
     }
     
     try {
+        toggleLoadingState(true);
         const url = await fetchSongUrl(song);
         if (url) {
-            const audio = new Audio(url);
-            await setupAudioPlayer(audio, song);
-            audio.play();
+            console.log('获取到播放链接:', url);
+            
+            // 更新当前播放歌曲信息
+            currentSong = song;
+            updatePlayerUI(song);
+            
+            // 创建新的音频对象
+            const audio = new Audio();
+            audio.preload = 'auto';
+            audio.autoplay = true;
+            
+            // 设置音频源
+            audio.src = url;
+            
+            // 设置音频事件
+            setupAudioEvents(audio);
+            setupProgressBar(audio);
+            setupVolumeControl(audio);
+            
+            // 更新当前音频对象
+            currentAudio = audio;
+            
+            // 尝试播放
+            try {
+                await audio.play();
+                updatePlayButtonState(true);
+            } catch (playError) {
+                console.error('播放失败:', playError);
+                showToast('播放失败: ' + (playError.message || '未知错误'));
+            }
         }
     } catch (error) {
         console.error('播放失败:', error);
@@ -251,27 +284,88 @@ async function setupAudioPlayer(audio, song) {
     }
 }
 
-// 获取歌曲URL
+/**
+ * 获取歌曲播放URL
+ * @param {Object} song 歌曲对象
+ * @returns {Promise<string>} 歌曲播放URL
+ */
 async function fetchSongUrl(song) {
     try {
+        if (!song || (!song.title && !song.songid)) {
+            throw new Error('无效的歌曲信息');
+        }
+
+        // 获取当前选择的音质
+        const currentBitrate = window.getCurrentBitrate ? window.getCurrentBitrate() : CONFIG.DEFAULT_BITRATE;
+        
+        // 构建请求参数
         const urlParams = new URLSearchParams({
-            gm: song.title,
-            n: song.n,
+            key: CONFIG.API_KEY,
+            gm: song.title || '',
+            n: song.n || song.songid || song.id || '',
             type: 'json',
-            br: currentBr
+            br: currentBitrate
         });
         
-        const response = await fetch(`${CONFIG.API_BASE_URL}?${urlParams}`);
-        const data = await response.json();
+        console.log('获取歌曲URL参数:', urlParams.toString());
         
-        if (data.code === 200 && data.music_url) {
-            return data.music_url;
-        } else {
-            throw new Error('无效的播放链接');
+        // 发送请求获取歌曲详情
+        const response = await fetch(`${CONFIG.API_BASE_URL}/?${urlParams}`);
+        const responseText = await response.text();
+        
+        // 尝试解析响应文本
+        try {
+            // 尝试解析为JSON
+            const data = JSON.parse(responseText);
+            
+            // 如果直接返回了URL
+            if (data && data.url) {
+                return data.url;
+            } else if (data && data.music_url) {
+                return data.music_url;
+            } else if (data && data[0] && data[0].url) {
+                return data[0].url;
+            } else {
+                console.error('无效的API响应:', data);
+                throw new Error('无法获取播放链接：无效的API响应格式');
+            }
+        } catch (jsonError) {
+            // 如果不是JSON格式，尝试从文本中提取URL
+            console.log('响应不是JSON格式，尝试从文本中提取URL');
+            
+            // 尝试从文本中提取URL
+            const urlMatch = responseText.match(/播放链接：(https?:\/\/[^\s\n]+)/);
+            if (urlMatch && urlMatch[1]) {
+                return urlMatch[1].trim();
+            }
+            
+            // 尝试提取封面图片URL
+            const imgMatch = responseText.match(/±img=([^±]+)±/);
+            if (imgMatch && imgMatch[1]) {
+                // 更新歌曲封面
+                song.cover = imgMatch[1].trim();
+            }
+            
+            // 尝试提取歌曲信息
+            const titleMatch = responseText.match(/歌名：([^\n]+)/);
+            if (titleMatch && titleMatch[1]) {
+                song.title = titleMatch[1].trim();
+            }
+            
+            const artistMatch = responseText.match(/歌手：([^\n]+)/);
+            if (artistMatch && artistMatch[1]) {
+                song.singer = artistMatch[1].trim();
+            }
+            
+            if (urlMatch && urlMatch[1]) {
+                return urlMatch[1].trim();
+            }
+            
+            throw new Error('无法从响应中提取播放链接');
         }
     } catch (error) {
         console.error('获取播放链接失败:', error);
-        throw new Error('无效的播放链接');
+        throw new Error('获取播放链接失败，请稍后重试');
     }
 }
 
