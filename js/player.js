@@ -31,13 +31,31 @@ function updatePlayerUI(song) {
     document.getElementById('duration').textContent = '0:00';
 }
 
+// 清理音频资源
+function cleanupAudio() {
+    if (currentAudio) {
+        // 暂停播放
+        currentAudio.pause();
+        
+        // 移除所有事件监听器
+        const newAudio = currentAudio.cloneNode(false);
+        currentAudio.replaceWith(newAudio);
+        
+        // 释放资源
+        currentAudio.src = '';
+        currentAudio.load();
+        currentAudio = null;
+        
+        // 强制垃圾回收（如果浏览器支持）
+        if (window.gc) {
+            window.gc();
+        }
+    }
+}
+
 // 清理播放器UI
 function cleanupPlayerUI() {
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.src = '';
-        currentAudio = null;
-    }
+    cleanupAudio();
     
     // 重置播放状态
     currentSongIndex = -1;
@@ -75,49 +93,107 @@ function setupAudioEvents(audio) {
 
 // 设置进度条
 function setupProgressBar(audio) {
-    document.getElementById('progressContainer').onclick = (e) => {
-        const rect = e.target.getBoundingClientRect();
-        const percent = (e.clientX - rect.left) / rect.width;
+    const progressContainer = document.getElementById('progressContainer');
+    let isDragging = false;
+
+    // 点击跳转
+    progressContainer.onclick = (e) => {
+        if (isDragging) return;
+        const rect = progressContainer.getBoundingClientRect();
+        const percent = Math.min(Math.max(0, (e.clientX - rect.left) / rect.width), 1);
         if (audio.duration) {
             audio.currentTime = percent * audio.duration;
+            updateProgressBar(percent * 100);
         }
     };
-}
 
-// 设置音量控制
-function setupVolumeControl(audio) {
-    const volumeSlider = document.getElementById('volumeSlider');
-    const volumeBtn = document.querySelector('.volume-button');
-    
-    audio.volume = volumeSlider.value / 100;
-    
-    volumeSlider.oninput = (e) => {
-        const value = e.target.value;
-        audio.volume = value / 100;
-        updateVolumeUI(value);
+    // 拖动功能
+    progressContainer.onmousedown = (e) => {
+        isDragging = true;
+        const wasPlaying = !audio.paused;
+        if (wasPlaying) {
+            audio.pause();
+        }
+        
+        const rect = progressContainer.getBoundingClientRect();
+        const moveHandler = (moveEvent) => {
+            const percent = Math.min(Math.max(0, (moveEvent.clientX - rect.left) / rect.width), 1);
+            const newTime = percent * audio.duration;
+            audio.currentTime = newTime;
+            updateProgressBar(percent * 100);
+            document.getElementById('currentTime').textContent = formatTime(newTime);
+        };
+        
+        const upHandler = (upEvent) => {
+            const percent = Math.min(Math.max(0, (upEvent.clientX - rect.left) / rect.width), 1);
+            const newTime = percent * audio.duration;
+            audio.currentTime = newTime;
+            
+            if (wasPlaying) {
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error('播放失败:', error);
+                    });
+                }
+            }
+            
+            document.removeEventListener('mousemove', moveHandler);
+            document.removeEventListener('mouseup', upHandler);
+            setTimeout(() => { isDragging = false; }, 100);
+        };
+
+        document.addEventListener('mousemove', moveHandler);
+        document.addEventListener('mouseup', upHandler, { once: true });
     };
 
-    volumeBtn.onclick = toggleMute;
-}
+    // 触摸屏支持
+    progressContainer.ontouchstart = (e) => {
+        isDragging = true;
+        const wasPlaying = !audio.paused;
+        if (wasPlaying) {
+            audio.pause();
+        }
+        
+        const rect = progressContainer.getBoundingClientRect();
+        const touch = e.touches[0];
+        let percent = Math.min(Math.max(0, (touch.clientX - rect.left) / rect.width), 1);
+        let newTime = percent * audio.duration;
+        audio.currentTime = newTime;
+        updateProgressBar(percent * 100);
+        document.getElementById('currentTime').textContent = formatTime(newTime);
+        
+        const moveHandler = (moveEvent) => {
+            const touch = moveEvent.touches[0];
+            percent = Math.min(Math.max(0, (touch.clientX - rect.left) / rect.width), 1);
+            newTime = percent * audio.duration;
+            audio.currentTime = newTime;
+            updateProgressBar(percent * 100);
+            document.getElementById('currentTime').textContent = formatTime(newTime);
+            moveEvent.preventDefault();
+        };
+        
+        const endHandler = () => {
+            if (audio.duration) {
+                audio.currentTime = newTime;
+                if (wasPlaying) {
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.error('播放失败:', error);
+                        });
+                    }
+                }
+            }
+            progressContainer.removeEventListener('touchmove', moveHandler);
+            progressContainer.removeEventListener('touchend', endHandler);
+            setTimeout(() => { isDragging = false; }, 100);
+        };
 
-// 更新音量UI
-function updateVolumeUI(value) {
-    const volumeBtn = document.querySelector('.volume-button');
-    document.getElementById('volumeSliderFill').style.width = `${value}%`;
-    
-    if (value == 0) {
-        volumeBtn.textContent = '🔇';
-        volumeBtn.classList.add('muted');
-    } else if (value < 50) {
-        volumeBtn.textContent = '🔉';
-        volumeBtn.classList.remove('muted');
-    } else {
-        volumeBtn.textContent = '🔊';
-        volumeBtn.classList.remove('muted');
-    }
-    
-    volumeBtn.classList.add('active');
-    setTimeout(() => volumeBtn.classList.remove('active'), 300);
+        progressContainer.addEventListener('touchmove', moveHandler, { passive: false });
+        progressContainer.addEventListener('touchend', endHandler, { once: true });
+        e.preventDefault();
+    };
 }
 
 // 播放/暂停切换 - 增加错误检查
@@ -196,9 +272,8 @@ async function playTrack(song) {
         return;
     }
     
-    if (currentAudio) {
-        currentAudio.pause();
-    }
+    // 清理之前的音频资源
+    cleanupAudio();
     
     try {
         toggleLoadingState(true);
@@ -221,7 +296,6 @@ async function playTrack(song) {
             // 设置音频事件
             setupAudioEvents(audio);
             setupProgressBar(audio);
-            setupVolumeControl(audio);
             
             // 更新当前音频对象
             currentAudio = audio;
@@ -233,11 +307,15 @@ async function playTrack(song) {
             } catch (playError) {
                 console.error('播放失败:', playError);
                 showToast('播放失败: ' + (playError.message || '未知错误'));
+                cleanupAudio();
             }
         }
     } catch (error) {
         console.error('播放失败:', error);
         showToast('播放失败，请重试');
+        cleanupAudio();
+    } finally {
+        toggleLoadingState(false);
     }
 }
 
@@ -270,9 +348,6 @@ async function setupAudioPlayer(audio, song) {
         
         // 设置进度条
         setupProgressBar(audio);
-        
-        // 设置音量控制
-        setupVolumeControl(audio);
         
         // 加载歌词
         await loadLyrics(song);
@@ -317,6 +392,15 @@ async function fetchSongUrl(song) {
         try {
             // 尝试解析为JSON
             const data = JSON.parse(responseText);
+            
+            // 保存歌词数据到歌曲对象
+            if (data.lrc) {
+                song.lrc = data.lrc;
+                // 如果有歌词更新UI
+                if (document.querySelector('.lyrics-display').style.display !== 'none') {
+                    parseLyrics(data.lrc);
+                }
+            }
             
             // 如果直接返回了URL
             if (data && data.url) {

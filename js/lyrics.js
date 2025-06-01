@@ -193,9 +193,17 @@ function clearLyrics() {
 // 加载歌词
 async function loadLyrics(song) {
     try {
+        // 如果已经有歌词数据，直接解析
+        if (song.lrc) {
+            parseLyrics(song.lrc);
+            return;
+        }
+
+        // 如果没有歌词数据，尝试从API获取
         const lyricsParams = new URLSearchParams({
-            gm: song.title,
-            n: song.n,
+            key: CONFIG.API_KEY,
+            gm: song.title || '',
+            n: song.n || song.songid || song.id || '',
             type: 'json'
         });
         
@@ -203,12 +211,22 @@ async function loadLyrics(song) {
         const data = await response.json();
         
         if (data.code === 200 && data.lrc) {
+            // 保存歌词数据到歌曲对象，避免重复请求
+            song.lrc = data.lrc;
             parseLyrics(data.lrc);
         } else {
-            document.querySelector('.lyrics-scroll').innerHTML = '<p class="lyrics-line">暂无歌词</p>';
+            showNoLyrics();
         }
     } catch (error) {
         console.error('获取歌词失败:', error);
-        document.querySelector('.lyrics-scroll').innerHTML = '<p class="lyrics-line">获取歌词失败</p>';
+        showNoLyrics();
+    }
+}
+
+// 显示无歌词提示
+function showNoLyrics() {
+    const lyricsContainer = document.querySelector('.lyrics-scroll');
+    if (lyricsContainer) {
+        lyricsContainer.innerHTML = '<div class="lyrics-line">暂无歌词</div>';
     }
 } 

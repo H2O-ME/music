@@ -168,33 +168,75 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 // 初始化音质选择器
 function initializeQualitySelector() {
-    const qualitySelect = document.getElementById('qualitySelect');
+    const qualityButtons = document.querySelectorAll('.quality-btn');
+    const qualityValueInput = document.getElementById('qualityValue');
     
     // 从本地存储加载用户首选项
     if (localStorage.getItem('bitratePreference')) {
         currentBitrate = localStorage.getItem('bitratePreference');
-        qualitySelect.value = currentBitrate;
+        qualityValueInput.value = currentBitrate;
+    } else {
+        // 默认选择第一个按钮
+        currentBitrate = '1';
+        qualityValueInput.value = '1';
     }
     
-    // 监听音质选择变化
-    qualitySelect.addEventListener('change', (e) => {
-        currentBitrate = e.target.value;
-        localStorage.setItem('bitratePreference', currentBitrate);
-        showToast(`已切换至${qualitySelect.options[qualitySelect.selectedIndex].text}`);
-        
-        // 如果当前正在播放歌曲，使用新音质重新加载
-        if (currentAudio && !currentAudio.paused) {
-            const currentSong = playlist[currentSongIndex];
-            if (currentSong) {
-                playTrack(currentSong);
-            }
+    // 设置初始选中状态
+    qualityButtons.forEach(btn => {
+        if (btn.dataset.value === currentBitrate) {
+            btn.classList.add('active');
         }
+        
+        // 监听按钮点击
+        btn.addEventListener('click', function(e) {
+            const newBitrate = this.dataset.value;
+            if (newBitrate === currentBitrate) return;
+            
+            // 创建水波纹效果
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            // 随机生成颜色
+            const hue = Math.floor(Math.random() * 360);
+            ripple.style.background = `hsla(${hue}, 100%, 70%, 0.7)`;
+            
+            this.appendChild(ripple);
+            
+            // 移除水波纹元素
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+            
+            // 更新UI
+            qualityButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // 更新当前音质
+            currentBitrate = newBitrate;
+            qualityValueInput.value = newBitrate;
+            localStorage.setItem('bitratePreference', newBitrate);
+            
+            // 显示提示信息
+            const qualityName = this.getAttribute('title') || `音质 ${newBitrate}`;
+            showToast(`已切换至${qualityName}（下次搜索或播放时生效）`);
+        });
     });
 }
 
 // 获取当前音质设置
 function getCurrentBitrate() {
-    return currentBitrate;
+    // 优先从隐藏的input获取当前值
+    const qualityValueInput = document.getElementById('qualityValue');
+    if (qualityValueInput) {
+        return qualityValueInput.value;
+    }
+    return currentBitrate || '1';
 }
 
 // 页面卸载前保存状态
