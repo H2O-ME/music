@@ -96,7 +96,6 @@ async function playSong(event, song) {
     }
     
     try {
-        toggleLoadingState(true);
         hideError();
         
         // 验证歌曲信息
@@ -147,8 +146,6 @@ async function playSong(event, song) {
         }
     } catch (error) {
         handlePlayError(error);
-    } finally {
-        toggleLoadingState(false);
     }
 }
 
@@ -210,11 +207,6 @@ async function downloadSong(event, title, n) {
         console.error('下载失败:', error);
         showToast('下载失败，请重试');
     }
-}
-
-// 切换加载状态
-function toggleLoadingState(show) {
-    document.querySelector('.loading').style.display = show ? 'block' : 'none';
 }
 
 // 显示错误信息

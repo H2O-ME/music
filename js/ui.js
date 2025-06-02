@@ -165,15 +165,12 @@ async function searchMusic() {
     if (!searchTerm) return;
 
     showResultsPage(searchTerm);
-    toggleLoadingState(true);
     
     try {
         const results = await fetchSearchResults(searchTerm);
         renderSearchResults(results);
     } catch (error) {
         handleSearchError(error);
-    } finally {
-        toggleLoadingState(false);
     }
 }
 

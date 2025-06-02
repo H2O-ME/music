@@ -276,7 +276,6 @@ async function playTrack(song) {
     cleanupAudio();
     
     try {
-        toggleLoadingState(true);
         const url = await fetchSongUrl(song);
         if (url) {
             console.log('获取到播放链接:', url);
@@ -314,8 +313,6 @@ async function playTrack(song) {
         console.error('播放失败:', error);
         showToast('播放失败，请重试');
         cleanupAudio();
-    } finally {
-        toggleLoadingState(false);
     }
 }
 
