@@ -40,8 +40,7 @@
 }
 
 .song-artist {
-    font-size: 15px;
-    color: rgba(255, 255, 255, 0.85);
+    display: none;
 }
 
 .player-right-controls {
@@ -251,8 +250,9 @@
 
 .lyrics-display {
     flex: 1;
-    min-height: 400px;
-    max-height: calc(100vh - 420px);
+    min-height: 380px;
+    max-height: calc(100vh - 320px);
+    margin-bottom: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
